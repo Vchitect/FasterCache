@@ -132,7 +132,7 @@ def fastercache_model_forward(
     ):
         self.counter+=1
         if self.counter >=40 and self.counter%6!=0:
-            single_output = self.fastercache_model_single_forward(hidden_states[:1],timestep[:1],encoder_hidden_states[:1],added_cond_kwargs,class_labels,cross_attention_kwargs,attention_mask,encoder_attention_mask,use_image_num,enable_temporal_attentions,return_dict)[0]
+            single_output = self.fastercache_model_single_forward(hidden_states[1:],timestep[1:],encoder_hidden_states[1:],added_cond_kwargs,class_labels,cross_attention_kwargs,attention_mask,encoder_attention_mask,use_image_num,enable_temporal_attentions,return_dict)[0]
             (bb, cc, tt, hh, ww) = single_output.shape
             cond = rearrange(single_output, "B C T H W -> (B T) C H W", B=bb, C=cc, T=tt, H=hh, W=ww)
             lf_c, hf_c = fft(cond.float())
@@ -149,13 +149,13 @@ def fastercache_model_forward(
             combined_fft = torch.fft.ifftshift(combine_uc)
             recovered_uncond = torch.fft.ifft2(combined_fft).real
             recovered_uncond = rearrange(recovered_uncond.to(single_output.dtype), "(B T) C H W -> B C T H W", B=bb, C=cc, T=tt, H=hh, W=ww)
-            output = torch.cat([single_output,recovered_uncond],dim=0)
+            output = torch.cat([recovered_uncond,single_output],dim=0)
         else:
             output = self.fastercache_model_single_forward(hidden_states,timestep,encoder_hidden_states,added_cond_kwargs,class_labels,cross_attention_kwargs,attention_mask,encoder_attention_mask,use_image_num,enable_temporal_attentions,return_dict)[0]
             if self.counter>38:
                 (bb, cc, tt, hh, ww) = output.shape
-                cond = rearrange(output[0:1], "B C T H W -> (B T) C H W", B=bb//2, C=cc, T=tt, H=hh, W=ww)
-                uncond = rearrange(output[1:2], "B C T H W -> (B T) C H W", B=bb//2, C=cc, T=tt, H=hh, W=ww)
+                cond = rearrange(output[1:2], "B C T H W -> (B T) C H W", B=bb//2, C=cc, T=tt, H=hh, W=ww)
+                uncond = rearrange(output[0:1], "B C T H W -> (B T) C H W", B=bb//2, C=cc, T=tt, H=hh, W=ww)
 
                 lf_c, hf_c = fft(cond.float())
                 lf_uc, hf_uc = fft(uncond.float())
